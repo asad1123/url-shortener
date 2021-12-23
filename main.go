@@ -1,10 +1,10 @@
 package main
 
 import (
-	api "github.com/asad1123/url-shortener/server/routes"
+	api "github.com/asad1123/url-shortener/src/routes"
 )
 
 func main() {
-	var server api.Routes
-	server.startGin()
+	var app api.App
+	app.Run()
 }

@@ -1,17 +1,18 @@
-package server
+package routes
 
 import (
-	handlers "github.com/asad1123/url-shortener/server/handlers"
+	handlers "github.com/asad1123/url-shortener/src/handlers"
 	"github.com/gin-gonic/gin"
 )
 
-type Routes struct {
+type App struct {
 }
 
-func (c Routes) startGin() {
+func (c App) Run() {
 	r := gin.Default()
 	api := r.Group("/api")
 	{
 		api.GET("/urls/:id", handlers.GetUrl)
 	}
+	r.Run(":8000")
 }
