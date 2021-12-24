@@ -47,3 +47,11 @@ func GetUrl(id string) (model_url.Url, error) {
 
 	return url, err
 }
+
+func DeleteUrl(id string) (*mgo.ChangeInfo, error) {
+	db := *GetDbHandle()
+
+	info, err := db.C(UrlCollection).RemoveAll(bson.M{"shortenedid": id})
+
+	return info, err
+}

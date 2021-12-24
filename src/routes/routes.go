@@ -14,6 +14,7 @@ func (c App) Run() {
 	{
 		api.POST("/urls", handlers.CreateShortenedUrl)
 		api.GET("/urls/:id", handlers.RetrieveShortenedUrl)
+		api.DELETE("/urls/:id", handlers.DeleteShortenedUrl)
 	}
 	r.Run(":8000")
 }

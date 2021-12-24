@@ -46,3 +46,17 @@ func RetrieveShortenedUrl(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url.RedirectUrl)
 
 }
+
+func DeleteShortenedUrl(c *gin.Context) {
+
+	id := c.Param("id")
+	info, err := db.DeleteUrl(id)
+	if info.Removed == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete this short URL."})
+	}
+
+	c.Status(http.StatusNoContent)
+}

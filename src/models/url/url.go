@@ -7,3 +7,8 @@ type Url struct {
 	RedirectUrl string
 	ShortenedId string
 }
+
+type UrlUsage struct {
+	ShortenedId string
+	AccessedAt  time.Time
+}
