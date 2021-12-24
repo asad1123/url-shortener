@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/asad1123/url-shortener/src/db"
 	"github.com/asad1123/url-shortener/src/keygen"
 	model_url "github.com/asad1123/url-shortener/src/models/url"
 	"github.com/gin-gonic/gin"
@@ -25,12 +26,23 @@ func CreateShortenedUrl(c *gin.Context) {
 	// thus leading to a higher chance of a collision
 	url.ShortenedId = keygen.RandomString(4)
 
+	err = db.SaveNewUrl(url)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new URL."})
+	}
+
 	c.JSON(http.StatusOK, gin.H{"url": &url})
 
 }
 
 func RetrieveShortenedUrl(c *gin.Context) {
 
-	c.JSON(http.StatusOK, gin.H{"short": "placeholder"})
+	id := c.Param("id")
+	url, err := db.GetUrl(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, url.RedirectUrl)
 
 }
