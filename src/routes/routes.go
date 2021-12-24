@@ -12,7 +12,8 @@ func (c App) Run() {
 	r := gin.Default()
 	api := r.Group("/api")
 	{
-		api.GET("/urls/:id", handlers.GetUrl)
+		api.POST("/urls", handlers.CreateShortenedUrl)
+		api.GET("/urls/:id", handlers.RetrieveShortenedUrl)
 	}
 	r.Run(":8000")
 }
