@@ -4,6 +4,7 @@ import "time"
 
 type Url struct {
 	CreatedAt   time.Time `json:"createdAt"`
+	ExpiryDate  time.Time `json:"expiryDate"`
 	RedirectUrl string    `json:"redirectUrl"`
 	ShortenedId string    `json:"shortenedId"`
 }

@@ -125,5 +125,4 @@ func GetUsageAnalyticsForUrl(c *gin.Context) {
 	response.Count = count
 
 	c.JSON(http.StatusOK, gin.H{"analytics": &response})
-
 }
