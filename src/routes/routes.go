@@ -13,7 +13,7 @@ func (a App) Run() {
 	api := r.Group("/api")
 	{
 		api.POST("/urls", handlers.CreateShortenedUrl)
-		api.GET("/urls/:id", handlers.RetrieveShortenedUrl)
+		api.GET("/urls/:id", handlers.RetrieveUrlToRedirect)
 		api.DELETE("/urls/:id", handlers.DeleteShortenedUrl)
 
 		api.GET("/analytics/urls/:id", handlers.GetUsageAnalyticsForUrl)
