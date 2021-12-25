@@ -1,20 +1,16 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/asad1123/url-shortener/src/cache"
-	"github.com/asad1123/url-shortener/src/db"
 	"github.com/asad1123/url-shortener/src/keygen"
 	model_url "github.com/asad1123/url-shortener/src/models/url"
+	"github.com/asad1123/url-shortener/src/repository/store"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2"
 )
 
 func CreateShortenedUrl(c *gin.Context) {
@@ -34,7 +30,7 @@ func CreateShortenedUrl(c *gin.Context) {
 	// thus leading to a higher chance of a collision
 	url.ShortenedId = keygen.RandomString(4)
 
-	err = saveUrl(url)
+	err = store.SaveUrl(url)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new URL."})
@@ -44,23 +40,10 @@ func CreateShortenedUrl(c *gin.Context) {
 
 }
 
-func saveUrl(url model_url.Url) error {
-	err := db.SaveNewUrl(url)
-	if err != nil {
-		return err
-	}
-
-	// write through cache design
-	ctx := context.Background()
-	err = cache.SaveShortenedUrlToCache(ctx, url.RedirectUrl, url.ShortenedId)
-
-	return err
-}
-
 func RetrieveUrlToRedirect(c *gin.Context) {
 
 	id := c.Param("id")
-	url, err := getUrl(id)
+	url, err := store.GetUrl(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
 	}
@@ -69,7 +52,7 @@ func RetrieveUrlToRedirect(c *gin.Context) {
 	urlUsage.ShortenedId = id
 	urlUsage.AccessedAt = time.Now().UTC()
 
-	err = db.SaveUrlUsage(urlUsage)
+	err = store.SaveUrlUsage(urlUsage)
 	// if analytics fails, we do not want to mark the request as a failure
 	// since there is no end user impact
 	// however, we should log this as an error on which to trigger actions
@@ -82,28 +65,10 @@ func RetrieveUrlToRedirect(c *gin.Context) {
 
 }
 
-func getUrl(id string) (string, error) {
-	ctx := context.Background()
-	redirectUrl, err := cache.GetRedirectUrlFromCache(ctx, id)
-	if err != nil {
-		// record our cache miss here
-		msg := fmt.Sprintf("Cache miss: %s", id)
-		log.Println(msg)
-
-		url, err := db.GetUrl(id)
-
-		// save this back to cache for future hits
-		cache.SaveShortenedUrlToCache(ctx, url.RedirectUrl, url.ShortenedId)
-		return url.RedirectUrl, err
-	}
-
-	return redirectUrl, err
-}
-
 func DeleteShortenedUrl(c *gin.Context) {
 
 	id := c.Param("id")
-	info, err := deleteUrl(id)
+	info, err := store.DeleteUrl(id)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete this short URL."})
@@ -113,20 +78,6 @@ func DeleteShortenedUrl(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-func deleteUrl(id string) (*mgo.ChangeInfo, error) {
-	ctx := context.Background()
-	err := cache.DeleteRedirectUrlFromCache(ctx, id)
-	info, dbErr := db.DeleteUrl(id)
-
-	if err != nil {
-		err = errors.Wrap(err, dbErr.Error())
-	} else {
-		err = dbErr
-	}
-
-	return info, err
 }
 
 func getInitialTimestamp(td string) (*time.Time, error) {
@@ -167,7 +118,7 @@ func GetUsageAnalyticsForUrl(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
 	}
 
-	count, err := db.SearchUrlUsage(id, *initialTimestamp)
+	count, err := store.GetUrlUsage(id, *initialTimestamp)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read analytics for this URL."})
