@@ -13,7 +13,7 @@ const UrlCollection = "url"
 const AnalyticsCollection = "url-analytics"
 
 func connectToDb() (*mgo.Database, error) {
-	host := "localhost"
+	host := "db"
 	databaseName := "urls"
 
 	session, err := mgo.Dial(host)

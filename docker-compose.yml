@@ -1,0 +1,22 @@
+version: "3.3"
+
+services:
+  db:
+    image: mongo
+    expose:
+      - "27017"
+    volumes:
+      - /var/db:/data/db
+  cache:
+    image: redis
+    expose:
+      - "6379"
+    volumes:
+      - /var/redis:/data
+  api:
+    image: api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - cache

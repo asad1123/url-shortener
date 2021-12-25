@@ -8,7 +8,7 @@ import (
 
 func connectToCache() *redis.Client {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     "cache:6379",
 		Password: "", // no pw set for now
 		DB:       0,  // use default db
 	})
