@@ -8,13 +8,15 @@ import (
 type App struct {
 }
 
-func (c App) Run() {
+func (a App) Run() {
 	r := gin.Default()
 	api := r.Group("/api")
 	{
 		api.POST("/urls", handlers.CreateShortenedUrl)
 		api.GET("/urls/:id", handlers.RetrieveShortenedUrl)
 		api.DELETE("/urls/:id", handlers.DeleteShortenedUrl)
+
+		api.GET("/analytics/urls/:id", handlers.GetUsageAnalyticsForUrl)
 	}
 	r.Run(":8000")
 }

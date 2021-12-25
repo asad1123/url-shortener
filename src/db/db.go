@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	model_url "github.com/asad1123/url-shortener/src/models/url"
 	mgo "gopkg.in/mgo.v2"
@@ -9,8 +10,9 @@ import (
 )
 
 const UrlCollection = "url"
+const AnalyticsCollection = "url-analytics"
 
-func ConnectToDb() (*mgo.Database, error) {
+func connectToDb() (*mgo.Database, error) {
 	host := "localhost"
 	databaseName := "urls"
 
@@ -23,8 +25,8 @@ func ConnectToDb() (*mgo.Database, error) {
 	return database, nil
 }
 
-func GetDbHandle() *mgo.Database {
-	db, err := ConnectToDb()
+func getDbHandle() *mgo.Database {
+	db, err := connectToDb()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -33,14 +35,14 @@ func GetDbHandle() *mgo.Database {
 }
 
 func SaveNewUrl(url model_url.Url) error {
-	db := *GetDbHandle()
+	db := *getDbHandle()
 
 	err := db.C(UrlCollection).Insert(url)
 	return err
 }
 
 func GetUrl(id string) (model_url.Url, error) {
-	db := *GetDbHandle()
+	db := *getDbHandle()
 
 	url := model_url.Url{}
 	err := db.C(UrlCollection).Find(bson.M{"shortenedid": id}).One(&url)
@@ -49,9 +51,24 @@ func GetUrl(id string) (model_url.Url, error) {
 }
 
 func DeleteUrl(id string) (*mgo.ChangeInfo, error) {
-	db := *GetDbHandle()
+	db := *getDbHandle()
 
 	info, err := db.C(UrlCollection).RemoveAll(bson.M{"shortenedid": id})
 
 	return info, err
+}
+
+func SaveUrlUsage(usage model_url.UrlUsage) error {
+	db := *getDbHandle()
+
+	err := db.C(AnalyticsCollection).Insert(usage)
+	return err
+}
+
+func SearchUrlUsage(id string, since time.Time) (int, error) {
+	db := *getDbHandle()
+
+	count, err := db.C(AnalyticsCollection).Find(bson.M{"shortenedid": id, "accessedat": bson.M{"$gte": since}}).Count()
+
+	return count, err
 }
