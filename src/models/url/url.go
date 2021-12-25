@@ -3,9 +3,9 @@ package model
 import "time"
 
 type Url struct {
-	CreatedAt   time.Time
-	RedirectUrl string
-	ShortenedId string
+	CreatedAt   time.Time `json:"createdAt"`
+	RedirectUrl string    `json:"redirectUrl"`
+	ShortenedId string    `json:"shortenedId"`
 }
 
 type UrlUsage struct {
@@ -20,6 +20,6 @@ type UrlUsageRequestSchema struct {
 }
 
 type UrlUsageResponseSchema struct {
-	ShortenedId string
-	Count       int
+	ShortenedId string `json:"shortenedId"`
+	Count       int    `json:"count"`
 }

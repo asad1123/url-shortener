@@ -115,7 +115,6 @@ func GetUsageAnalyticsForUrl(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
 	}
 
-	log.Println(initialTimestamp)
 	count, err := db.SearchUrlUsage(id, *initialTimestamp)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read analytics for this URL."})
