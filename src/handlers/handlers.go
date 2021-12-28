@@ -13,7 +13,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CreateShortenedUrl(c *gin.Context) {
+type Handler struct {
+	store  *store.Store
+	keygen *keygen.KeyGen
+}
+
+func NewHandler(store *store.Store, keygen *keygen.KeyGen) *Handler {
+	return &Handler{
+		store,
+		keygen,
+	}
+}
+
+func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 
 	url := model_url.Url{}
 	err := c.Bind(&url)
@@ -25,12 +37,9 @@ func CreateShortenedUrl(c *gin.Context) {
 
 	url.CreatedAt = time.Now().UTC()
 
-	// move string length to env variable for configurability
-	// this can then be increased if we face higher scale,
-	// thus leading to a higher chance of a collision
-	url.ShortenedId = keygen.RandomString(4)
+	url.ShortenedId = h.keygen.RandomString()
 
-	err = store.SaveUrl(url)
+	err = h.store.SaveUrl(url)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new URL."})
@@ -40,10 +49,10 @@ func CreateShortenedUrl(c *gin.Context) {
 
 }
 
-func RetrieveUrlToRedirect(c *gin.Context) {
+func (h *Handler) RetrieveUrlToRedirect(c *gin.Context) {
 
 	id := c.Param("id")
-	url, err := store.GetUrl(id)
+	url, err := h.store.GetUrl(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
 	}
@@ -52,7 +61,7 @@ func RetrieveUrlToRedirect(c *gin.Context) {
 	urlUsage.ShortenedId = id
 	urlUsage.AccessedAt = time.Now().UTC()
 
-	err = store.SaveUrlUsage(urlUsage)
+	err = h.store.SaveUrlUsage(urlUsage)
 	// if analytics fails, we do not want to mark the request as a failure
 	// since there is no end user impact
 	// however, we should log this as an error on which to trigger actions
@@ -65,10 +74,10 @@ func RetrieveUrlToRedirect(c *gin.Context) {
 
 }
 
-func DeleteShortenedUrl(c *gin.Context) {
+func (h *Handler) DeleteShortenedUrl(c *gin.Context) {
 
 	id := c.Param("id")
-	info, err := store.DeleteUrl(id)
+	info, err := h.store.DeleteUrl(id)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete this short URL."})
@@ -78,6 +87,32 @@ func DeleteShortenedUrl(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) GetUsageAnalyticsForUrl(c *gin.Context) {
+
+	id := c.Param("id")
+
+	var query model_url.UrlUsageRequestSchema
+	c.Bind(&query)
+
+	initialTimestamp, err := getInitialTimestamp(query.Since)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
+	}
+
+	count, err := h.store.GetUrlUsage(id, *initialTimestamp)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read analytics for this URL."})
+	}
+
+	var response model_url.UrlUsageResponseSchema
+	response.ShortenedId = id
+	response.Count = count
+
+	c.JSON(http.StatusOK, gin.H{"analytics": &response})
 }
 
 func getInitialTimestamp(td string) (*time.Time, error) {
@@ -103,30 +138,4 @@ func getInitialTimestamp(td string) (*time.Time, error) {
 	timestamp := time.Now().UTC().Add(timeDuration)
 
 	return &timestamp, nil
-}
-
-func GetUsageAnalyticsForUrl(c *gin.Context) {
-
-	id := c.Param("id")
-
-	var query model_url.UrlUsageRequestSchema
-	c.Bind(&query)
-
-	initialTimestamp, err := getInitialTimestamp(query.Since)
-	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
-	}
-
-	count, err := store.GetUrlUsage(id, *initialTimestamp)
-	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read analytics for this URL."})
-	}
-
-	var response model_url.UrlUsageResponseSchema
-	response.ShortenedId = id
-	response.Count = count
-
-	c.JSON(http.StatusOK, gin.H{"analytics": &response})
 }

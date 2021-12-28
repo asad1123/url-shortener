@@ -12,37 +12,40 @@ import (
 const UrlCollection = "url"
 const AnalyticsCollection = "url-analytics"
 
-func connectToDb() (*mgo.Database, error) {
-	host := "db"
-	databaseName := "urls"
+type Database struct {
+	session *mgo.Database
+}
 
-	session, err := mgo.Dial(host)
+func connectToDb(host string, port string, dbName string) (*mgo.Database, error) {
+	url := fmt.Sprintf("%s:%s", host, port)
+
+	session, err := mgo.Dial(url)
 	if err != nil {
 		return nil, err
 	}
 
-	database := session.DB(databaseName)
+	database := session.DB(dbName)
 	return database, nil
 }
 
-func getDbHandle() *mgo.Database {
-	db, err := connectToDb()
+func NewDatabase(host string, port string, dbName string) *Database {
+	db, err := connectToDb(host, port, dbName)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	return db
+	return &Database{session: db}
 }
 
-func SaveNewUrl(url model_url.Url) error {
-	db := *getDbHandle()
+func (d *Database) SaveNewUrl(url model_url.Url) error {
+	db := d.session
 
 	err := db.C(UrlCollection).Insert(url)
 	return err
 }
 
-func GetUrl(id string) (model_url.Url, error) {
-	db := *getDbHandle()
+func (d *Database) GetUrl(id string) (model_url.Url, error) {
+	db := d.session
 
 	url := model_url.Url{}
 	err := db.C(UrlCollection).Find(bson.M{"shortenedid": id}).One(&url)
@@ -50,23 +53,23 @@ func GetUrl(id string) (model_url.Url, error) {
 	return url, err
 }
 
-func DeleteUrl(id string) (*mgo.ChangeInfo, error) {
-	db := *getDbHandle()
+func (d *Database) DeleteUrl(id string) (*mgo.ChangeInfo, error) {
+	db := d.session
 
 	info, err := db.C(UrlCollection).RemoveAll(bson.M{"shortenedid": id})
 
 	return info, err
 }
 
-func SaveUrlUsage(usage model_url.UrlUsage) error {
-	db := *getDbHandle()
+func (d *Database) SaveUrlUsage(usage model_url.UrlUsage) error {
+	db := d.session
 
 	err := db.C(AnalyticsCollection).Insert(usage)
 	return err
 }
 
-func SearchUrlUsage(id string, since time.Time) (int, error) {
-	db := *getDbHandle()
+func (d *Database) SearchUrlUsage(id string, since time.Time) (int, error) {
+	db := d.session
 
 	count, err := db.C(AnalyticsCollection).Find(bson.M{"shortenedid": id, "accessedat": bson.M{"$gte": since}}).Count()
 

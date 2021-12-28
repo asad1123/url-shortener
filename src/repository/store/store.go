@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/asad1123/url-shortener/src/config"
 	model_url "github.com/asad1123/url-shortener/src/models/url"
 	"github.com/asad1123/url-shortener/src/repository/cache"
 	"github.com/asad1123/url-shortener/src/repository/db"
@@ -13,41 +14,54 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func SaveUrl(url model_url.Url) error {
-	err := db.SaveNewUrl(url)
+type Store struct {
+	config *config.AppConfig
+	db     *db.Database
+	cache  *cache.Cache
+}
+
+func NewStore(config *config.AppConfig) *Store {
+	db := db.NewDatabase(config.DbHostname, config.DbPort, config.DbName)
+	cache := cache.NewClient(config.CacheHostname, config.CachePort, config.CachePassword, config.CacheDb)
+
+	return &Store{config: config, db: db, cache: cache}
+}
+
+func (s *Store) SaveUrl(url model_url.Url) error {
+	err := s.db.SaveNewUrl(url)
 	if err != nil {
 		return err
 	}
 
 	// write through cache design
 	ctx := context.Background()
-	err = cache.SaveShortenedUrlToCache(ctx, url.RedirectUrl, url.ShortenedId)
+	err = s.cache.SaveShortenedUrlToCache(ctx, url.RedirectUrl, url.ShortenedId)
 
 	return err
 }
 
-func GetUrl(id string) (string, error) {
+func (s *Store) GetUrl(id string) (string, error) {
 	ctx := context.Background()
-	redirectUrl, err := cache.GetRedirectUrlFromCache(ctx, id)
+	redirectUrl, err := s.cache.GetRedirectUrlFromCache(ctx, id)
 	if err != nil {
 		// record our cache miss here
 		msg := fmt.Sprintf("Cache miss: %s", id)
 		log.Println(msg)
 
-		url, err := db.GetUrl(id)
+		url, err := s.db.GetUrl(id)
 
 		// save this back to cache for future hits
-		cache.SaveShortenedUrlToCache(ctx, url.RedirectUrl, url.ShortenedId)
+		s.cache.SaveShortenedUrlToCache(ctx, url.RedirectUrl, url.ShortenedId)
 		return url.RedirectUrl, err
 	}
 
 	return redirectUrl, err
 }
 
-func DeleteUrl(id string) (*mgo.ChangeInfo, error) {
+func (s *Store) DeleteUrl(id string) (*mgo.ChangeInfo, error) {
 	ctx := context.Background()
-	err := cache.DeleteRedirectUrlFromCache(ctx, id)
-	info, dbErr := db.DeleteUrl(id)
+	err := s.cache.DeleteRedirectUrlFromCache(ctx, id)
+	info, dbErr := s.db.DeleteUrl(id)
 
 	if err != nil {
 		err = errors.Wrap(err, dbErr.Error())
@@ -58,10 +72,10 @@ func DeleteUrl(id string) (*mgo.ChangeInfo, error) {
 	return info, err
 }
 
-func SaveUrlUsage(usage model_url.UrlUsage) error {
-	return db.SaveUrlUsage(usage)
+func (s *Store) SaveUrlUsage(usage model_url.UrlUsage) error {
+	return s.db.SaveUrlUsage(usage)
 }
 
-func GetUrlUsage(id string, initialTimestamp time.Time) (int, error) {
-	return db.SearchUrlUsage(id, initialTimestamp)
+func (s *Store) GetUrlUsage(id string, initialTimestamp time.Time) (int, error) {
+	return s.db.SearchUrlUsage(id, initialTimestamp)
 }

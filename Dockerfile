@@ -18,6 +18,7 @@ FROM gcr.io/distroless/base-debian10
 WORKDIR /app
 
 COPY --from=build /api /app/api
+COPY config.env /app/config.env
 
 EXPOSE 8000
 
