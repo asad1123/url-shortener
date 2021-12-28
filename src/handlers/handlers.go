@@ -25,6 +25,10 @@ func NewHandler(store *store.Store, keygen *keygen.KeyGen) *Handler {
 	}
 }
 
+func (h *Handler) Pong(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "pong"})
+}
+
 func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 
 	url := model_url.Url{}
@@ -36,7 +40,6 @@ func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 	}
 
 	url.CreatedAt = time.Now().UTC()
-
 	url.ShortenedId = h.keygen.RandomString()
 
 	err = h.store.SaveUrl(url)
@@ -45,7 +48,7 @@ func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new URL."})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"url": &url})
+	c.JSON(http.StatusCreated, gin.H{"url": &url})
 
 }
 

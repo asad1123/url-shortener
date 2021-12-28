@@ -15,25 +15,35 @@ type App struct {
 }
 
 func (a App) Run() {
-	r := gin.Default()
-
-	config, err := config.LoadConfig(".")
+	config, err := config.LoadConfig(".", "config")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
-	handler := startHandler(&config)
 
+	r := SetupRouter(&config)
+	url := fmt.Sprintf("0.0.0.0:%s", config.ServerPort)
+	r.Run(url)
+}
+
+func SetupRouter(config *config.AppConfig) *gin.Engine {
+	handler := startHandler(config)
+
+	r := gin.Default()
 	api := r.Group("/api")
 	{
+		// URL manipulation
 		api.POST("/urls", handler.CreateShortenedUrl)
 		api.GET("/urls/:id", handler.RetrieveUrlToRedirect)
 		api.DELETE("/urls/:id", handler.DeleteShortenedUrl)
 
+		// analytics
 		api.GET("/analytics/urls/:id", handler.GetUsageAnalyticsForUrl)
+
+		// health check route
+		api.GET("/ping", handler.Pong)
 	}
 
-	url := fmt.Sprintf("0.0.0.0:%s", config.ServerPort)
-	r.Run(url)
+	return r
 }
 
 func startHandler(config *config.AppConfig) *handlers.Handler {
