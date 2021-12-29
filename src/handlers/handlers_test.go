@@ -43,7 +43,7 @@ func TestCreateShortenedUrlWithNoExpiry(t *testing.T) {
 
 	request := "{\"redirectUrl\": \"www.google.com\"}"
 
-	req, _ := http.NewRequest("POST", "/api/urls", bytes.NewBuffer([]byte(request)))
+	req, _ := http.NewRequest("POST", "/api/v1/urls", bytes.NewBuffer([]byte(request)))
 	req.Header.Add("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -62,7 +62,7 @@ func createUrl(longUrl string) map[string]map[string]string {
 
 	request := "{\"redirectUrl\": \"www.google.com\"}"
 
-	req, _ := http.NewRequest("POST", "/api/urls", bytes.NewBuffer([]byte(request)))
+	req, _ := http.NewRequest("POST", "/api/v1/urls", bytes.NewBuffer([]byte(request)))
 	req.Header.Add("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -76,7 +76,7 @@ func TestCreateShortenedUrlWithExpiry(t *testing.T) {
 	w := httptest.NewRecorder()
 	request := "{\"redirectUrl\": \"www.google.com\", \"expiryDate\": \"2022-01-01T00:00:00Z\"}"
 
-	req, _ := http.NewRequest("POST", "/api/urls", bytes.NewBuffer([]byte(request)))
+	req, _ := http.NewRequest("POST", "/api/v1/urls", bytes.NewBuffer([]byte(request)))
 	req.Header.Add("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -99,7 +99,7 @@ func TestCreateShortenedUrlInvalidRequestError(t *testing.T) {
 
 	request := "{\"blah\": \"www.google.com\"}"
 
-	req, _ := http.NewRequest("POST", "/api/urls", bytes.NewBuffer([]byte(request)))
+	req, _ := http.NewRequest("POST", "/api/v1/urls", bytes.NewBuffer([]byte(request)))
 	req.Header.Add("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -115,7 +115,7 @@ func TestRetrieveUrlToRedirect(t *testing.T) {
 	response := createUrl("www.google.com")
 
 	shortenedId := response["url"]["shortenedId"]
-	retrieveRoute := fmt.Sprintf("/api/urls/%s", shortenedId)
+	retrieveRoute := fmt.Sprintf("/api/v1/urls/%s", shortenedId)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", retrieveRoute, nil)
@@ -125,12 +125,12 @@ func TestRetrieveUrlToRedirect(t *testing.T) {
 	assert.Equal(t, http.StatusFound, w.Code)
 
 	url, _ := w.Result().Location()
-	assert.Equal(t, "/api/urls/www.google.com", url.Path)
+	assert.Equal(t, "/api/v1/urls/www.google.com", url.Path)
 }
 
 func TestRetrieveUrlToRedirectNotFound(t *testing.T) {
 	w := httptest.NewRecorder()
-	retrieveRoute := fmt.Sprintf("/api/urls/%s", "abcd")
+	retrieveRoute := fmt.Sprintf("/api/v1/urls/%s", "abcd")
 
 	req, _ := http.NewRequest("GET", retrieveRoute, nil)
 	req.Header.Add("Content-Type", "application/json")
@@ -143,7 +143,7 @@ func TestDeleteUrl(t *testing.T) {
 	response := createUrl("www.google.com")
 
 	shortenedId := response["url"]["shortenedId"]
-	deleteRoute := fmt.Sprintf("/api/urls/%s", shortenedId)
+	deleteRoute := fmt.Sprintf("/api/v1/urls/%s", shortenedId)
 
 	w := httptest.NewRecorder()
 
@@ -155,7 +155,7 @@ func TestDeleteUrl(t *testing.T) {
 }
 
 func TestDeleteUrlNotFound(t *testing.T) {
-	deleteRoute := fmt.Sprintf("/api/urls/%s", "abcd")
+	deleteRoute := fmt.Sprintf("/api/v1/urls/%s", "abcd")
 
 	w := httptest.NewRecorder()
 
@@ -167,7 +167,7 @@ func TestDeleteUrlNotFound(t *testing.T) {
 }
 
 func retrieveUrl(shortenedId string) {
-	retrieveRoute := fmt.Sprintf("/api/urls/%s", shortenedId)
+	retrieveRoute := fmt.Sprintf("/api/v1/urls/%s", shortenedId)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", retrieveRoute, nil)
@@ -179,7 +179,7 @@ func TestGetUsageAnalyics(t *testing.T) {
 	result := createUrl("www.google.com")
 
 	shortenedId := result["url"]["shortenedId"]
-	retrieveRoute := fmt.Sprintf("/api/analytics/urls/%s", shortenedId)
+	retrieveRoute := fmt.Sprintf("/api/v1/analytics/urls/%s", shortenedId)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", retrieveRoute, nil)

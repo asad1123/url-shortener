@@ -48,6 +48,25 @@ func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 	url.CreatedAt = time.Now().UTC()
 	url.ShortenedId = h.keygen.RandomString()
 
+	existing, _ := h.store.GetUrl(url.ShortenedId)
+	retry := 0
+	for len(existing) != 0 && retry < 5 {
+		url.ShortenedId = h.keygen.RandomString()
+		existing, _ = h.store.GetUrl(url.ShortenedId)
+
+		retry++
+		time.Sleep(time.Microsecond) // don't want to overload our server
+	}
+
+	if retry == 5 {
+		// trigger action from this alert
+		log.Println("Error: Failed to generate a unique shortened ID")
+
+		// notify user to try again at a later time
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not generate a short URL. Please try again in a bit."})
+		return
+	}
+
 	err = h.store.SaveUrl(url)
 	if err != nil {
 		log.Println(err)

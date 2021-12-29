@@ -30,14 +30,17 @@ func SetupRouter(config *config.AppConfig) *gin.Engine {
 
 	r := gin.Default()
 	api := r.Group("/api")
+	v1 := api.Group("/v1")
 	{
 		// URL manipulation
-		api.POST("/urls", handler.CreateShortenedUrl)
-		api.GET("/urls/:id", handler.RetrieveUrlToRedirect)
-		api.DELETE("/urls/:id", handler.DeleteShortenedUrl)
+		urls := v1.Group("/urls")
+		urls.POST("", handler.CreateShortenedUrl)
+		urls.GET(":id", handler.RetrieveUrlToRedirect)
+		urls.DELETE(":id", handler.DeleteShortenedUrl)
 
 		// analytics
-		api.GET("/analytics/urls/:id", handler.GetUsageAnalyticsForUrl)
+		analytics := v1.Group("/analytics/urls")
+		analytics.GET(":id", handler.GetUsageAnalyticsForUrl)
 
 		// health check route
 		api.GET("/ping", handler.Pong)
