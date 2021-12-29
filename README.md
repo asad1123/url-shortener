@@ -89,5 +89,5 @@ This will then launch the MongoDB and Redis containers (these containers will NO
 
 The previously mentioned helper script can also invoke the test suite (this has also been containerized):
 ```sh
-./run -t
+./run.sh -t
 ```
