@@ -19,7 +19,7 @@ This is write-heavy system. The data itself is also not strongly relational, as 
 
 We will create a REST API that will allow for URL manipulations, displaying analytics, and general health checks. This is developed via the [Gin framework](https://gin-gonic.com/docs/). These API's are grouped by the particular domain:
 * URL Manipulation (CRUD operations for URL generation / redirection):
-```json
+```sh
 
 Create a new shortened URL
 POST /api/v1/urls
@@ -51,8 +51,10 @@ Response:
 204 with no content
 ```
 
+All URLs will be stored in MongoDB for persistence. However, we do not want to keep querying the database for performance reasons, so we will also store a copy in our Redis cache. We can set up a Kubernetes cronjob or something similar to clean up expired URLs (not done here).
+
 * URL analytics:
-```json
+```sh
 
 GET /api/v1/analytics/urls/<:id>
 
@@ -64,7 +66,7 @@ Response:
 ```
 
 * Health check
-```json
+```sh
 
 GET /api/ping
 
@@ -81,7 +83,7 @@ This whole project has been containerized. There is a helper script called `run.
 ./run.sh -r
 ```
 
-This will then launch the MongoDB and Redis containers (these containers will NOT be exposed outside of the internal Docker network), after which it will launch the API container on port 8000.
+This will then launch the MongoDB and Redis containers (these containers will NOT be exposed outside of the internal Docker network), after which it will launch the API container on port 8000. Both Mongo and Redis containers are also volume mounted to the host, so even if the whole application goes down, the application will be able to retain data on next boot.
 
 ## Testing
 
