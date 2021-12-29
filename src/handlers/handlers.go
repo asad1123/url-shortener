@@ -36,7 +36,13 @@ func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not resolve body"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Could not resolve body"})
+		return
+	}
+
+	if len(url.RedirectUrl) == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Need to provide redirect URL"})
+		return
 	}
 
 	url.CreatedAt = time.Now().UTC()
@@ -45,11 +51,11 @@ func (h *Handler) CreateShortenedUrl(c *gin.Context) {
 	err = h.store.SaveUrl(url)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new URL."})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new URL."})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"url": &url})
-
 }
 
 func (h *Handler) RetrieveUrlToRedirect(c *gin.Context) {
@@ -57,7 +63,8 @@ func (h *Handler) RetrieveUrlToRedirect(c *gin.Context) {
 	id := c.Param("id")
 	url, err := h.store.GetUrl(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
+		return
 	}
 
 	urlUsage := model_url.UrlUsage{}
@@ -73,8 +80,8 @@ func (h *Handler) RetrieveUrlToRedirect(c *gin.Context) {
 		log.Default().Println(msg)
 	}
 
-	c.Redirect(http.StatusTemporaryRedirect, url)
-
+	c.Redirect(http.StatusFound, url)
+	c.Abort()
 }
 
 func (h *Handler) DeleteShortenedUrl(c *gin.Context) {
@@ -83,10 +90,12 @@ func (h *Handler) DeleteShortenedUrl(c *gin.Context) {
 	info, err := h.store.DeleteUrl(id)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete this short URL."})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Could not delete this short URL."})
+		return
 	}
 	if info.Removed == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Could not find this short URL."})
+		return
 	}
 
 	c.Status(http.StatusNoContent)
@@ -102,19 +111,18 @@ func (h *Handler) GetUsageAnalyticsForUrl(c *gin.Context) {
 	initialTimestamp, err := getInitialTimestamp(query.Since)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid format"})
+		return
 	}
 
 	count, err := h.store.GetUrlUsage(id, *initialTimestamp)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read analytics for this URL."})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to read analytics for this URL."})
+		return
 	}
 
-	var response model_url.UrlUsageResponseSchema
-	response.ShortenedId = id
-	response.Count = count
-
+	response := model_url.UrlUsageResponseSchema{ShortenedId: id, Count: count}
 	c.JSON(http.StatusOK, gin.H{"analytics": &response})
 }
 

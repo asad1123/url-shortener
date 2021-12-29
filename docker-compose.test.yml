@@ -2,12 +2,16 @@ version: "3.3"
 
 services:
   db:
+    logging:
+      driver: none
     image: mongo:4.2-bionic
     expose:
       - "27017"
     volumes:
       - /var/db:/data/db
   cache:
+    logging:
+      driver: none
     image: redis:6.2.6
     expose:
       - "6379"
@@ -16,8 +20,8 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: api
+      dockerfile: Dockerfile.test
+    image: api-test
     ports:
       - "8000:8000"
     depends_on:

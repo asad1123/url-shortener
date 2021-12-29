@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/asad1123/url-shortener/src/config"
 )
@@ -43,5 +44,6 @@ func TestUniqueRandomString(t *testing.T) {
 		} else {
 			set[str] = true
 		}
+		time.Sleep(time.Nanosecond)
 	}
 }

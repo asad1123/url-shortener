@@ -70,7 +70,6 @@ func (d *Database) SaveUrlUsage(usage model_url.UrlUsage) error {
 
 func (d *Database) SearchUrlUsage(id string, since time.Time) (int, error) {
 	db := d.session
-
 	count, err := db.C(AnalyticsCollection).Find(bson.M{"shortenedid": id, "accessedat": bson.M{"$gte": since}}).Count()
 
 	return count, err
